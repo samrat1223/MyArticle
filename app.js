@@ -29,9 +29,12 @@ app.set('view engine','pug');
 
 //Body parser middleware
 // parse application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
-app.use(bodyParser.json())
+app.use(bodyParser.json());
+
+//set public folder
+app.use(express.static(path.join(__dirname,'public')));
 
 app.get('/',function(req,res){
     //Routing to home page
@@ -51,6 +54,15 @@ app.get('/',function(req,res){
     });
     });
     
+ // Get single article
+ app.get('/article/:id',function(req,res){
+     Article.findById(req.params.id,function(err,article){
+        res.render('article',{
+            article:article
+        });
+     });
+ });
+
 
 //Add route
 app.get('/articles/add',function(req,res){
@@ -58,6 +70,7 @@ app.get('/articles/add',function(req,res){
         title:'Add article'
     });
 })
+
 
 //Add submit POST request
 app.post('/articles/add',function(req,res){
@@ -75,6 +88,48 @@ app.post('/articles/add',function(req,res){
     }
  });
 });
+
+// Load edit form
+app.get('/article/edit/:id',function(req,res){
+    Article.findById(req.params.id,function(err,article){
+       res.render('edit_article',{
+           title:'Edit title',
+           article:article
+       });
+    });
+});
+
+//Update submit POST 
+app.post('/articles/edit/:id',function(req,res){
+    let article = {};
+    article.title = req.body.title;
+    article.author=req.body.author;
+    article.body=req.body.body;
+
+    let query={_id:req.params.id}
+   
+    Article.update(query,article,function(err){
+       if(err){
+           console.log(err);
+           return;
+       } else {
+           res.redirect('/');
+       }
+    });
+   });
+
+ 
+   app.delete('/article/:id',function(req,res){
+        let query = {_id:req.params.id}
+
+        Article.remove(query,function(err){
+            if(err){
+                console.log(err);
+            }
+            res.send('Success');
+        });
+   });
+
 
 //start server and then Listening on port 3000 and callback function to print something after listen
 app.listen(3000,function(){

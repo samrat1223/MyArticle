@@ -1,4 +1,4 @@
-const express = require('express');
+const express = require('express'); 
 const path = require('path');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
@@ -23,6 +23,7 @@ const app = express();
  
 // Init models
 let Article = require('./models/article');
+
  
 // Load view engine
 app.set('views', path.join(__dirname, 'views'));
@@ -69,7 +70,9 @@ app.get('/', (req, res) => {
 
 //Route files
 let articles = require('./routes/articles');
+let users = require('./routes/users');
 app.use('/articles',articles);
+app.use('/users',users);
  
 // Port listening --------------------------------------
 app.listen(3000, () => {

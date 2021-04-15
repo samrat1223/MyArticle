@@ -1,137 +1,78 @@
-const express=require('express');
-const path=require('path');
+const express = require('express');
+const path = require('path');
 const mongoose = require('mongoose');
-const bodyParser=require('body-parser');
-
-mongoose.connect('mongodb://localhost/nodekb');
-let db  = mongoose.connection;
-
-//check connection
-db.once('open',function(){
-  console.log('Connected to mongodb');
+const bodyParser = require('body-parser');
+const { check, validationResult } = require('express-validator');
+const flash = require('connect-flash');
+const session = require('express-session');
+ 
+// Connect to database
+mongoose.connect('mongodb://localhost/nodekb', {useNewUrlParser: true});
+let db = mongoose.connection;
+ 
+db.once('open', () => {
+    console.log('Connected to MongoDB');
 });
-
-
-//check for db errors
-db.on('error',function(err){
+ 
+db.on('error', (err) => {
     console.log(err);
 });
-
-//Init app
-const app = express(); 
-
-//Bringing models
+ 
+// Init app
+const app = express();
+ 
+// Init models
 let Article = require('./models/article');
-
-//Load view engine
-app.set('views',path.join(__dirname,'views'));
-app.set('view engine','pug');
-
+ 
+// Load view engine
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'pug');
+ 
+// Set static folder
+app.use(express.static(path.join(__dirname, 'public')));
+ 
+// Midlewares ----------------------------------------
+ 
 //Body parser middleware
-// parse application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: false }));
-// parse application/json
-app.use(bodyParser.json());
-
-//set public folder
-app.use(express.static(path.join(__dirname,'public')));
-
-app.get('/',function(req,res){
-    //Routing to home page
-    //res.send('Hello Samrat');
-    //Roting to a particular file
-    
-    Article.find({},function(err,articles){
-        if(err){
+app.set('view engine', 'pug');
+ 
+// Express Session middleware
+app.use(session({
+    secret: 'keyboard cat',
+    resave: true,
+    saveUninitialized: true
+}));
+ 
+// Express Messages middleware
+app.use(require('connect-flash')());
+app.use(function (req, res, next) {
+    res.locals.messages = require('express-messages')(req, res);
+    next();
+});
+ 
+// Routes ----------------------------------------------
+ 
+// Home route
+app.get('/', (req, res) => {
+    Article.find({}, (err, articles) => {
+        if(err) {
             console.log(err);
-        } else
-        {
-            res.render('index',{
-                title:'Samrat',
-                articles:articles
+        } else {
+            res.render('index', {
+                title: 'Articles',
+                articles: articles
             });
         }
     });
-    });
-    
- // Get single article
- app.get('/article/:id',function(req,res){
-     Article.findById(req.params.id,function(err,article){
-        res.render('article',{
-            article:article
-        });
-     });
- });
-
-
-//Add route
-app.get('/articles/add',function(req,res){
-    res.render('add_article',{
-        title:'Add article'
-    });
-})
-
-
-//Add submit POST request
-app.post('/articles/add',function(req,res){
- let article = new Article();
- article.title = req.body.title;
- article.author=req.body.author;
- article.body=req.body.body;
-
- article.save(function(err){
-    if(err){
-        console.log(err);
-        return;
-    } else {
-        res.redirect('/');
-    }
- });
 });
 
-// Load edit form
-app.get('/article/edit/:id',function(req,res){
-    Article.findById(req.params.id,function(err,article){
-       res.render('edit_article',{
-           title:'Edit title',
-           article:article
-       });
-    });
-});
-
-//Update submit POST 
-app.post('/articles/edit/:id',function(req,res){
-    let article = {};
-    article.title = req.body.title;
-    article.author=req.body.author;
-    article.body=req.body.body;
-
-    let query={_id:req.params.id}
-   
-    Article.update(query,article,function(err){
-       if(err){
-           console.log(err);
-           return;
-       } else {
-           res.redirect('/');
-       }
-    });
-   });
-
+//Route files
+let articles = require('./routes/articles');
+app.use('/articles',articles);
  
-   app.delete('/article/:id',function(req,res){
-        let query = {_id:req.params.id}
+// Port listening --------------------------------------
+app.listen(3000, () => {
+    console.log('Server started on port 3000');
+});
 
-        Article.remove(query,function(err){
-            if(err){
-                console.log(err);
-            }
-            res.send('Success');
-        });
-   });
-
-
-//start server and then Listening on port 3000 and callback function to print something after listen
-app.listen(3000,function(){
-    console.log('Server strted on port 3000')
-})
